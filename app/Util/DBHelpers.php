@@ -13,14 +13,18 @@ use Illuminate\Support\Facades\Log;
 class DBHelpers
 {
     static function crearConexionBDDRestaurante($idRestaurante){
-        $parametrosConexion=self::datosConexionRestaurante($idRestaurante);
+        $parametrosConexion = self::datosConexionRestaurante($idRestaurante);
+        if(!$parametrosConexion) return false;
         return self::crearConexionBDD($parametrosConexion);
     }
 
     private static function datosConexionRestaurante($idRestaurante)
     {
         $conexionDomicilio = ConexionDomicilio::where("IDRestaurante",$idRestaurante)->first();
-
+        if(!$conexionDomicilio) {
+            Log::error("No existen datos de conexión para el restaurante ID $idRestaurante");
+            return false;
+        }
         return [
             "servidor" => $conexionDomicilio->Nombre_Servidor,
             "instancia" => $conexionDomicilio->Instancia,
