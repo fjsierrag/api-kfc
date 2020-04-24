@@ -26,7 +26,7 @@ class DomicilioController extends Controller
         if( !$resultadoValidacion ) return ["codigo"=>400,"mensaje"=>"error","causa"=>$pedidoServices->mensajeError];
 
         Redis::set($uid, $data);
-        InsertarPedido::dispatchNow($uid);
+        InsertarPedido::dispatch($uid);
         return ["codigo"=>200,"mensaje"=>"Pedido ingresado exitosamente","causa"=>"Pedido ingresado exitosamente"];
     }
 
@@ -38,7 +38,6 @@ class DomicilioController extends Controller
         DB::connection("")->enableQueryLog();
         RestauranteDomicilio::domicilioActivo()->get(["IDRestaurante","IDTienda"]);
         $log = DB::getQueryLog();
-        dd($log);
     }
     public function pingPorTienda(Request $request){
         $pub = Redis::publish('test-channel', json_encode(['foo' => 'bar']));

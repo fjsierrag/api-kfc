@@ -22,11 +22,10 @@
         <a class="navbar-brand col-sm-3 col-md-2 mr-0" href="{{ route("home")}}" >KFC - Domicilio</a>
         <ul class="navbar-nav px-3">
             <li class="nav-item text-nowrap">
-                <a class="nav-link" href="{{ route("logout-basic")}}">Salir</a>
+                <a class="nav-link" href="{{ route("logout-basic")}}">Salir <i data-feather="log-out"></i></a>
             </li>
         </ul>
     </nav>
-
     <div class="container-fluid">
         <div class="row">
             @include('partials.navegacion-izquierda')
@@ -36,7 +35,11 @@
         </div>
     </div>
     <script src="{{asset("js/plugins/bootstrap/js/bootstrap.min.js")}}"></script>
+    <script src="{{asset("js/plugins/feather-icons/feather-icons.min.js")}}"></script>
     <script src="{{asset("js/plugins/alertifyjs/alertify.js")}}"></script>
     @yield("js")
+    <script>
+        feather.replace();
+    </script>
     </body>
 </html>

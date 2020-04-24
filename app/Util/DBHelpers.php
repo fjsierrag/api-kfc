@@ -33,8 +33,6 @@ class DBHelpers
             "usuario" => Crypt::decryptString($conexionDomicilio->Usuario),
             "clave" => Crypt::decryptString($conexionDomicilio->Clave)
         ];
-        // TODO: DESQUEMAR LO QUEMADO DE LA QUEMACION
-        //return isset($datosConexion[$idRestaurante])?$datosConexion[$idRestaurante]:$datosConexion[72];
     }
 
     static function crearConexionBDD($parametrosConexion){

@@ -118,8 +118,16 @@ class PedidoServices
             return false;
         }
 
-        $recargo = $datosRecargoDomicilio["recargo"];
         $respuesta = $datosRecargoDomicilio["respuesta"];
+        $recargo = $datosRecargoDomicilio["recargo"];
+        if(!is_numeric($recargo)){
+            Log::error("No existe el plu de recargo");
+            return false;
+        }
+        if($recargo==0){
+            Log::error("No existe el plu de recargo");
+            return false;
+        }
         return true;
     }
 
