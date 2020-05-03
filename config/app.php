@@ -228,5 +228,5 @@ return [
         'View' => Illuminate\Support\Facades\View::class,
 
     ],
-
+    'idbasedomicilio' => env('ID_BASE_DOMICILIO',0)
 ];

@@ -13,5 +13,11 @@
       <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
       <jdbc-url>jdbc:sqlite:$PROJECT_DIR$/storage/db.sqlite</jdbc-url>
     </data-source>
+    <data-source source="LOCAL" name="DomiColombia dev" uuid="761b79f9-3494-4d89-9309-74340f91aa9c">
+      <driver-ref>sqlserver.ms</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>com.microsoft.sqlserver.jdbc.SQLServerDriver</jdbc-driver>
+      <jdbc-url>jdbc:sqlserver://SRVV-DEV\MAXPOINT16;database=SqlGerenteDomColombia</jdbc-url>
+    </data-source>
   </component>
 </project>

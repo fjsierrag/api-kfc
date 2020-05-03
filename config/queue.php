@@ -82,7 +82,7 @@ return [
 
     'failed' => [
         'driver' => env('QUEUE_FAILED_DRIVER', 'database'),
-        'database' => env('DB_CONNECTION', 'mysql'),
+        'database' => env('DB_JOBS_FAILED_CONNECTION', 'sqlite'),
         'table' => 'failed_jobs',
     ],
 

@@ -20,6 +20,9 @@ class InsertarPedido implements ShouldQueue
     private $mensajeError = "Error no determinado";
     private $conexionBDD = null;
 
+    public $retryAfter = 15;
+    public $tries = 1;
+
     /**
      * Create a new job instance.
      *
@@ -44,8 +47,17 @@ class InsertarPedido implements ShouldQueue
         $pedidoServices = new PedidoServices($objPedido);
         $resultadoInsercion = $pedidoServices->guardarPedido();
 
-        if(!$resultadoInsercion) throw new \Exception($this->mensajeError);
+        if(!$resultadoInsercion) throw new \Exception($pedidoServices->mensajeError);
         //Eliminar registro procesado
         Redis::del($this->uidPedido);
+    }
+
+    public function failed(\Exception $exception)
+    {
+        $jsonPedido = Redis::get($this->uidPedido);
+        $objPedido = json_decode($jsonPedido);
+        $pedidoServices = new PedidoServices($objPedido);
+        $pedidoServices->limpiarPedidoFallido();
+        // Send user notification of failure, etc...
     }
 }

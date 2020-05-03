@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 
 class PedidoServices
 {
-    private $objSolicitudPedido;
+    public $objSolicitudPedido;
     private $sqlHelpers;
     public $mensajeError = "Error no determinado";
     private $conexionBDD=null;
@@ -51,16 +51,34 @@ class PedidoServices
         return true;
     }
 
+    public function limpiarPedidoFallido(){
+        $this->inicializar();
+        $cabecera=$this->cabecera();
+        $modificadores = collect($this->objSolicitudPedido->modificadores);
+        $idsModificadores=$modificadores->pluck("detalleApp")->all();
+
+        $this->conexionBDD->delete("FormasPago_App",['codigo_app'=>$cabecera->codigoApp]);
+        $this->conexionBDD->executeQuery('DELETE FROM Modificadores_App WHERE detalle_app IN (?)',
+                                         array($idsModificadores),
+                                         array(\Doctrine\DBAL\Connection::PARAM_STR_ARRAY)
+        );
+        $this->conexionBDD->delete("Detalle_App",['codigo_app'=>$cabecera->codigoApp]);
+        $this->conexionBDD->delete("Cabecera_App",['codigo_app'=>$cabecera->codigoApp]);
+        return true;
+    }
+
     private function inicializar()
     {
-        $objPedido=$this->objSolicitudPedido;
-        $cabecera = $objPedido->cabecera[0];
-        $idRestaurante = $cabecera->codRestaurante;
-        if (!$this->inicializarSQL($idRestaurante)) {
+        $cabecera = $this->cabecera();
 
+        $idRestauranteDomicilioENV=\Config::get('app.idbasedomicilio');
+        //(int)env("ID_BASE_DOMICILIO");
+        if($idRestauranteDomicilioENV>0) $idRestaurante=$idRestauranteDomicilioENV;
+        else $idRestaurante = $cabecera->codRestaurante;
+
+        if (!$this->inicializarSQL($idRestaurante)) {
             return false;
         }
-        $this->objSolicitudPedido = $objPedido;
         return true;
     }
 
@@ -68,7 +86,7 @@ class PedidoServices
     {
         $conexionBDD = DBHelpers::crearConexionBDDRestaurante($idRestaurante);
         if (!$conexionBDD) {
-            $this->mensajeError = "Error al conectar a la base del Restaurente ID $idRestaurante";
+            $this->mensajeError = "Error al conectar a la base del Restaurante ID $idRestaurante";
             return false;
         }
         $this->conexionBDD = $conexionBDD;
@@ -133,7 +151,8 @@ class PedidoServices
 
     private function detallesPertenecenCabecera()
     {
-        $cabecera = $this->objSolicitudPedido->cabecera[0];
+        $cabecera = $this->cabecera();
+
         $codCabecera = trim($cabecera->codigoApp);
         $detalle = $this->objSolicitudPedido->detalle;
         foreach ($detalle as $det) {
@@ -148,7 +167,8 @@ class PedidoServices
 
     private function revisarMontosPedido()
     {
-        $totalCabecera = $this->objSolicitudPedido->cabecera[0]->totalFactura;
+        $cabecera = $this->cabecera();
+        $totalCabecera = $cabecera->totalFactura;
         $detalles = $this->objSolicitudPedido->detalle;
 
         $totalDetalles = array_reduce(
@@ -197,7 +217,7 @@ class PedidoServices
 
     private function buscarRecargoDomicilio()
     {
-        $cabecera = $this->objSolicitudPedido->cabecera[0];
+        $cabecera = $this->cabecera();
         $codCabecera = trim($cabecera->codigoApp);
         $codRestaurante = $cabecera->codRestaurante;
         $query = "EXEC App_DetalleApp_ValidaDatos :codCabecera , :codRestaurante , :recargo , :respuesta";
@@ -261,11 +281,19 @@ class PedidoServices
 
     private function formasPagoPertenecenCabecera()
     {
-        $cabecera = $this->objSolicitudPedido->cabecera[0];
+        $cabecera = $this->cabecera();
         $codCabecera = trim($cabecera->codigoApp);
         $formasPago = $this->objSolicitudPedido->formasPago;
-        foreach ($formasPago as $fp) {
-            $codigoAppFormaPago = trim($fp->codigoApp);
+        if(is_array($formasPago)){
+            foreach ($formasPago as $fp) {
+                $codigoAppFormaPago = trim($fp->codigoApp);
+                if (!($codCabecera === $codigoAppFormaPago)) {
+                    $this->mensajeError = "No todas las formas de pago corresponden a la cabecera del pedido";
+                    return false;
+                }
+            }
+        }else{
+            $codigoAppFormaPago = trim($formasPago->codigoApp);
             if (!($codCabecera === $codigoAppFormaPago)) {
                 $this->mensajeError = "No todas las formas de pago corresponden a la cabecera del pedido";
                 return false;
@@ -276,15 +304,21 @@ class PedidoServices
 
     private function totalFormasPagoCoincideCabecera()
     {
-        $totalCabecera = $this->objSolicitudPedido->cabecera[0]->totalFactura;
+        $cabecera = $this->cabecera();
+        $totalCabecera = $cabecera->totalFactura;
         $formasPago = $this->objSolicitudPedido->formasPago;
 
-        $totalFormasPago = array_reduce(
-            $formasPago,
-            function ($total, $formaPago) {
-                return $total += $formaPago->totalPagar;
-            }
-        );
+        if(is_array($formasPago)){
+            $totalFormasPago = array_reduce(
+                $formasPago,
+                function ($total, $formaPago) {
+                    return $total += $formaPago->totalPagar;
+                }
+            );
+        }else{
+            $totalFormasPago = $formasPago->totalPagar;
+        }
+
 
         if (!($totalFormasPago == $totalCabecera)) {
             $this->mensajeError = "La suma de las formas de pago es distinta al total de la cabecera";
@@ -297,7 +331,14 @@ class PedidoServices
 
     private function ingresarCabecera()
     {
-        $cabecera = $this->objSolicitudPedido->cabecera[0];
+        $cabecera = $this->cabecera();
+
+        // TODO: Mejorar la logica con la que se setea esta variable,
+        // esta variable define si es necesario agregar o no el parametro
+        // "codigo_pickup" antes de ejecutar el SP de insercion de cabecera
+        $esBaseEcuador = \Config::get('app.idbasedomicilio');;
+        $parametroCodigoPickup = (0==$esBaseEcuador)?":codigo_pickup,":"";
+
         $query = "EXEC App_CabeceraApp_IngresarDatos 
                 :codigo_app, :cod_Restaurante,
                 :fecha_Pedido, :telefono_cliente,
@@ -309,10 +350,9 @@ class PedidoServices
                 :tipo_Inmueble, :total_Factura,
                 :observacion_pedido, :transaccion,
                 :medio, :dispositivo,
-                :codigo_pickup, :respuesta ";
+                $parametroCodigoPickup :respuesta ";
 
         $stmt = $this->conexionBDD->prepare($query);
-
         $codigoApp=isset($cabecera->codigoApp) ? $cabecera->codigoApp : null;
         $codRestaurante=isset($cabecera->codRestaurante) ? $cabecera->codRestaurante : null;
         $fechaPedido = isset($cabecera->fechaPedido) ? $cabecera->fechaPedido : null;
@@ -356,13 +396,15 @@ class PedidoServices
         $stmt->bindParam("transaccion", $transaccion);
         $stmt->bindParam("medio", $medio);
         $stmt->bindParam("dispositivo",$dispositivo);
-        $stmt->bindParam("codigo_pickup",$codigoPickup);
+
         $stmt->bindParam("respuesta", $respuesta, ParameterType::STRING, 250);
+        if((0==$esBaseEcuador)) $stmt->bindParam("codigo_pickup", $codigoPickup);
+
         $stmt->execute();
 
         // El SP retorna una cadena de caracteres NULL cuando se guarda el pedido correctamente
         // aqui "corrijo" ese comportamiento
-        $result = preg_replace('/[\x00-\x1F\x80-\xFF]/', '', $respuesta);
+        $result = strtolower(preg_replace('/[\x00-\x1F\x80-\xFF]/', '', $respuesta));
 
         if( empty($result) || "ok"== $result ) {
             return true;
@@ -429,7 +471,13 @@ class PedidoServices
 
     private function ingresarFormasPago()
     {
-        $formasPago = collect($this->objSolicitudPedido->formasPago);
+        $fp = $this->objSolicitudPedido->formasPago;
+
+        if(is_array($fp)){
+            $formasPago = collect($fp);
+        }else{
+            $formasPago = collect()->add($fp);
+        }
 
         $res = $formasPago->map(function($fp){
             try{
@@ -455,7 +503,7 @@ class PedidoServices
     }
 
     private function ingresarPedidoSistema(){
-        $cabecera = $this->objSolicitudPedido->cabecera[0];
+        $cabecera = $this->cabecera();
         $codigoApp=isset($cabecera->codigoApp) ? $cabecera->codigoApp : null;
 
         $query = "EXEC App_IngresaPedidoSistema :codigoApp";
@@ -468,5 +516,11 @@ class PedidoServices
             return false;
         }
         return $res;
+    }
+
+    private function cabecera(){
+        $objPedido = $this->objSolicitudPedido;
+        if(is_array($objPedido->cabecera)) return $objPedido->cabecera[0];
+        return $objPedido->cabecera;
     }
 }
