@@ -20,7 +20,6 @@ class SqlHelpers
             $stmt->bindParam($par, $val[0], $val[1], $val[2]);
         }
         $stmt->execute();
-        dd($parametros);
         $res =  $stmt->fetchAll();
         return $res;
     }

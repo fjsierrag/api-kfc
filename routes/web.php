@@ -30,9 +30,3 @@ Route::get('logout-basic', function() {
     Auth::logout();
     return abort(401);
 })->name("logout-basic");
-
-
-Route::get('vaciar-redis', function() {
-    \Illuminate\Support\Facades\Redis::flushall();
-    return "OK";
-})->name("logout-basic");

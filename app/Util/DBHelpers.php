@@ -25,6 +25,15 @@ class DBHelpers
             Log::error("No existen datos de conexión para el restaurante ID $idRestaurante");
             return false;
         }
+
+        $datosLog=[
+            "servidor" => $conexionDomicilio->Nombre_Servidor,
+            "instancia" => $conexionDomicilio->Instancia,
+            "puerto" => $conexionDomicilio->Puerto,
+            "base" => $conexionDomicilio->BDD,
+        ];
+        Log::info(json_encode($datosLog));
+
         return [
             "servidor" => $conexionDomicilio->Nombre_Servidor,
             "instancia" => $conexionDomicilio->Instancia,

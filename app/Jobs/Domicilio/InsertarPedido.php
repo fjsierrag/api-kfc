@@ -20,8 +20,8 @@ class InsertarPedido implements ShouldQueue
     private $mensajeError = "Error no determinado";
     private $conexionBDD = null;
 
-    public $retryAfter = 15;
-    public $tries = 1;
+    public $retryAfter = 25;
+    public $tries = 3;
 
     /**
      * Create a new job instance.
