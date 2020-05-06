@@ -7,6 +7,7 @@ namespace App\Services;
 use App\Util\DBHelpers;
 use App\Util\SqlHelpers;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Driver\PDOException;
 use Doctrine\DBAL\ParameterType;
 use Illuminate\Support\Facades\Log;
 
@@ -38,7 +39,7 @@ class PedidoServices
     }
 
     //public function guardarPedido($numero)
-    public function guardarPedido($numero)
+    public function guardarPedido()
     {
         if (!$this->inicializar()) return false;
         if (!$this->ingresarCabecera()) return false;
@@ -518,7 +519,7 @@ class PedidoServices
         $stmt->bindParam("codigoApp", $codigoApp);
         try{
             $res = $stmt->execute();
-        }catch(\Exception $ex){
+        }catch(PDOException $ex){
             $this->mensajeError = $ex->getMessage();
             return false;
         }

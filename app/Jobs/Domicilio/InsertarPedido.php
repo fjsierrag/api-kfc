@@ -47,6 +47,7 @@ class InsertarPedido implements ShouldQueue
     {
 
         $jsonPedido = Redis::get($this->uidPedido);
+        if(empty($jsonPedido)) throw new PedidoNoInsertado("No se encontró el JSON del pedido en REDIS");
         $objPedido = json_decode($jsonPedido);
 
         $pedidoServices = new PedidoServices($objPedido);

@@ -25,6 +25,7 @@ Route::name('admin.')->middleware(['auth.basic'])->prefix('admin')->group(functi
     Route::get('/guardar-conexion', "AdminController@guardarConexion")->name("guardar-conexion");
     Route::get('/probar-conexion', "AdminController@probarConexionBDD")->name("probar-conexion");
     Route::get('/probar-ping', "AdminController@probarPing")->name("probar-ping");
+    Route::get('/reintentar-job', "AdminController@reintentarJob")->name("reintentar-job");
 });
 
 Route::get('logout-basic', function() {
