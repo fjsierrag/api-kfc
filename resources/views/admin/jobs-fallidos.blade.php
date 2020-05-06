@@ -1,41 +1,31 @@
 @extends("layouts.admin")
 @section("main")
     <div class="container">
-    <h2>Conexiones BDD Locales Domicilio</h2>
+    <h2>Jobs Fallidos</h2>
     <div class="table-responsive">
         <table class="table table-striped table-sm" id="tb-conexiones">
             <thead>
             <tr>
-                <th>TIENDA</th>
-                <th>NOMBRE</th>
-                <th>SERVIDOR</th>
-                <th>INSTANCIA</th>
-                <th>PUERTO</th>
-                <th>NOMBRE BDD</th>
+                <th>CONEXION</th>
+                <th>COLA</th>
+                <th>PAYLOAD</th>
+                <th>EXCEPCIÓN</th>
+                <th>FECHA ERROR</th>
                 <th>ACCIONES</th>
             </tr>
             </thead>
             <tbody>
-            @foreach ($registrosTabla as $registro)
-                <tr class="fila"
-                    data-id-restaurante="@if(isset($registro["IDRestaurante"])){{$registro["IDRestaurante"]}}@endif"
-                    data-id-tienda="@if(isset($registro["IDTienda"])){{$registro["IDTienda"]}}@endif"
-                    data-servidor="@if(isset($registro["Nombre_Servidor"])){{$registro["Nombre_Servidor"]}}@endif"
-                    data-instancia="@if(isset($registro["Instancia"])){{$registro["Instancia"]}}@endif"
-                    data-puerto="@if(isset($registro["Puerto"])){{$registro["Puerto"]}} @endif"
-                    data-bdd="@if(isset($registro["BDD"])){{$registro["BDD"]}}@endif">
+            @foreach ($jobs as $registro)
+                <tr class="fila" data-id-job="{{$registro->id}}" >
                     <td>@if(isset($registro["IDTienda"])){{$registro["IDTienda"]}}@endif</td>
                     <td>@if(isset($registro["Nombre"])){{$registro["Nombre"]}}@endif</td>
                     <td>@if(isset($registro["Nombre_Servidor"])){{$registro["Nombre_Servidor"]}}@endif</td>
                     <td>@if(isset($registro["Instancia"])){{$registro["Instancia"]}}@endif</td>
                     <td>@if(isset($registro["Puerto"])){{$registro["Puerto"]}}@endif</td>
-                    <td>@if(isset($registro["BDD"])){{$registro["BDD"]}}@endif</td>
                     <td>
                         <button class="btn btn-sm btn-dark bt-editar" data-toggle="modal" data-target="#modal-editar">
                             Editar
                         </button>
-                        <button class="btn btn-sm btn-dark bt-probar-bdd">Ping BDD</button>
-                        <button class="btn btn-sm btn-dark bt-ping">Ping</button>
                     </td>
                 </tr>
             @endforeach
@@ -149,83 +139,6 @@
         $btnGuardarConexion.on("click", guardarConexion);
 
         $("#checkEditarUsuarioClave").on("click", mostrarOcultarCamposUsuariosClave);
-
-        $("#tb-conexiones").on("click", "button.bt-probar-bdd", function () {
-            var $this = $(this);
-            var dataRestaurante = buscarDataRestaurante($this);
-            console.log(dataRestaurante);
-
-            var peticionAjax = $.ajax({
-                url: "{{ route("admin.probar-conexion") }}",
-                type: "GET",
-                data: {idRestaurante:dataRestaurante.idRestaurante},
-                beforeSend: function () {
-                    console.log($this);
-                },
-                success: function (response) {
-                    if (!response.conecta) {
-                        alertify.alert(
-                            "Error",
-                            "No hay conexión con la base de datos: <br/>" + response.error
-                        );
-                        return false;
-                    }
-                    alertify.alert(
-                        "OK",
-                        "Conexión correcta con el local "+dataRestaurante.idTienda
-                    );
-                    return true;
-                },
-                error: function(error){
-                    alertify.alert(
-                        "Error en la petición: ("+error.status+")",
-                        error.statusText
-                    );
-                }
-            });
-            peticionAjax.always(function () {
-                habilitarModalEditar();
-            });
-        });
-
-        $("#tb-conexiones").on("click", "button.bt-ping", function () {
-            var $this = $(this);
-            var dataRestaurante = buscarDataRestaurante($this);
-            console.log(dataRestaurante);
-
-            var peticionAjax = $.ajax({
-                url: "{{ route("admin.probar-ping") }}",
-                type: "GET",
-                data: {idRestaurante:dataRestaurante.idRestaurante},
-                beforeSend: function () {
-                    console.log($this);
-                },
-                success: function (response) {
-                    if (!response.ping) {
-                        alertify.alert(
-                            "Error",
-                            "No hay PING hacia el local "+dataRestaurante.idTienda+" <br/>" + (response.error || "")
-                        );
-                        return false;
-                    }
-                    alertify.alert(
-                        "OK",
-                        "PING correcto con el local " + dataRestaurante.idTienda
-                    );
-                    return true;
-                },
-                error: function(error){
-                    alertify.alert(
-                        "Error en la petición: ("+error.status+")",
-                        error.statusText
-                    );
-                }
-            });
-            peticionAjax.always(function () {
-                habilitarModalEditar();
-            });
-        });
-
         function buscarDataRestaurante($target) {
             let parentData = $target.closest("tr.fila").data();
             return parentData || null;

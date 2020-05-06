@@ -37,13 +37,20 @@ class PedidoServices
         return true;
     }
 
-    public function guardarPedido()
+    //public function guardarPedido($numero)
+    public function guardarPedido($numero)
     {
         if (!$this->inicializar()) return false;
         if (!$this->ingresarCabecera()) return false;
         if (!$this->ingresaDetalle()) return false;
         if (!$this->ingresarModificadores()) return false;
         if (!$this->ingresarFormasPago()) return false;
+        /*
+        if(1==$numero){
+            $this->mensajeError="Fallamos a propósito";
+            return false;
+        }
+        */
         if (!$this->ingresarPedidoSistema()) return false;
 
         //Cierro la conexion a la BDD
@@ -53,7 +60,7 @@ class PedidoServices
 
     public function limpiarPedidoFallido(){
         $this->inicializar();
-        $cabecera=$this->cabecera();
+        $cabecera = $this->cabecera();
         $modificadores = collect($this->objSolicitudPedido->modificadores);
         $idsModificadores=$modificadores->pluck("detalleApp")->all();
 
@@ -512,7 +519,7 @@ class PedidoServices
         try{
             $res = $stmt->execute();
         }catch(\Exception $ex){
-            $this->mensajeError=$ex->getMessage();
+            $this->mensajeError = $ex->getMessage();
             return false;
         }
         return $res;

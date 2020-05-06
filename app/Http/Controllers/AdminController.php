@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Admin\ConexionDomicilio;
+use App\Models\Admin\FailedJob;
 use App\Models\Azure\RestauranteDomicilio;
 use App\Util\DBHelpers;
 use App\Util\Ping;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Crypt;
 
 class AdminController extends Controller
@@ -20,11 +22,23 @@ class AdminController extends Controller
     {
         // DB::connection("sqlsrv_az_ec")->enableQueryLog();
         // DB::connection("sqlite")->enableQueryLog();
-        $restaurantesDomicilio = RestauranteDomicilio::domicilioActivo()->orderBy("IDTienda")->get(["IDRestaurante", "IDTienda", "Nombre"]);
 
+        $idBaseDomicilioConfig = Config::get("app.idbasedomicilio");
 
-        $idsRestaurantesDomicilio = $restaurantesDomicilio->modelKeys();
-        $restaurantesDomicilioTabla = $restaurantesDomicilio->keyBy("IDRestaurante")->toArray();
+        if(0==$idBaseDomicilioConfig){
+            $restaurantesDomicilio = RestauranteDomicilio::domicilioActivo()->orderBy("IDTienda")->get(["IDRestaurante", "IDTienda", "Nombre"]);
+            $idsRestaurantesDomicilio = $restaurantesDomicilio->modelKeys();
+
+        }else{
+            $objConexion=new RestauranteDomicilio();
+            $objConexion->IDRestaurante=$idBaseDomicilioConfig;
+            $objConexion->IDTienda="DOMICILIO";
+            $objConexion->Nombre="DOMICILIO";
+            $restaurantesDomicilio=collect()
+                ->push($objConexion);
+            $idsRestaurantesDomicilio = [$idBaseDomicilioConfig];
+        }
+
         $conexionesDomicilio = ConexionDomicilio::whereIn("IDRestaurante", $idsRestaurantesDomicilio)->get()->keyBy(
             "IDRestaurante"
         );
@@ -138,6 +152,10 @@ class AdminController extends Controller
         return ["ping"=>$existePing];
     }
 
+    public function jobsFallidos(){
+        $jobs = FailedJob::all();
+        return view("admin.jobs-fallidos",["jobs"=>$jobs]);
+    }
     private function pingBDD($parametros){
 
         $parametrosConexion = array(

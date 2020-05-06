@@ -6,20 +6,27 @@ use App\Http\Controllers\Controller;
 use App\Jobs\Domicilio\InsertarPedido;
 use App\Models\Azure\RestauranteDomicilio;
 use App\Services\PedidoServices;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Response;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Request as Req;
 use Ramsey\Uuid\Uuid;
 
 class DomicilioController extends Controller
 {
     
     public function pedidoApp(Request $request){
-
         $data = $request->getContent();
         $objPeticion = json_decode($data);
+        //$uid = Uuid::uuid4()->toString();
+        $uid = Carbon::createFromTimestampMs($request->server("REQUEST_TIME_FLOAT")*1000)->format("H-i-s_v");
+
+        $this->guardarJSONPedido($data,$uid);
 
         $cabecera = $request->get("cabecera");
         $detalle = $request->get("detalle");
@@ -34,8 +41,6 @@ class DomicilioController extends Controller
         //Validacion de formas de pago
         $validacion=$this->validarCampo($objPeticion->formasPago,$formasPago,$this->reglasValidacionFormasPago(),true);
         if(true !== $validacion) return $validacion;
-
-        $uid = Uuid::uuid4()->toString();
 
         $pedidoServices = new PedidoServices(json_decode($data));
         $resultadoValidacionBDD = $pedidoServices->validar();
@@ -121,6 +126,23 @@ class DomicilioController extends Controller
         return true;
     }
 
+    protected function guardarJSONPedido($contenido,$identificador)
+    {
+
+        //$fechaActual=Carbon::createFromTimestampMs($identificador);
+       // dd($identificador);
+        $fechaActual=Carbon::now();
+        //$identificador = $fechaActual->format("His-u");
+
+        $nombreArchivo = $identificador . ".json";
+        $nombreCarpeta = $fechaActual->toDateString();
+        $url = join(DIRECTORY_SEPARATOR, ["Pedidos", $nombreCarpeta, $nombreArchivo]);
+
+        try {
+            Storage::put($url, $contenido);
+        } catch (Exception $ex) {
+            Log::error("Error al guardar JSON del pedido, a continuacion se muestra los datos recibidos");
+            Log::error($contenido);
+        }
+    }
 }
-
-

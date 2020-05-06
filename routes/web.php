@@ -20,6 +20,7 @@ Route::get('/', function () {
 Route::name('admin.')->middleware(['auth.basic'])->prefix('admin')->group(function () {
     Route::get('/', "AdminController@inicio")->name("inicio");
     Route::get('/locales', "AdminController@localesDomicilio")->name("locales");
+    Route::get('/jobs-fallidos', "AdminController@jobsFallidos")->name("jobs-fallidos");
 
     Route::get('/guardar-conexion', "AdminController@guardarConexion")->name("guardar-conexion");
     Route::get('/probar-conexion', "AdminController@probarConexionBDD")->name("probar-conexion");

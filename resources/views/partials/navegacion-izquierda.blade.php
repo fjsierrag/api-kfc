@@ -15,6 +15,12 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a class="nav-link {{ request()->routeIs('admin.jobs-fallidos') ? 'active' : '' }}"
+                   href="{{ route("admin.jobs-fallidos")}}">
+                    <i data-feather="archive"></i> Jobs Fallidos
+                </a>
+            </li>
+            <li class="nav-item">
                 <a class="btn btn-block btn-outline-danger" href="{{ route("logout-basic")}}" role="button">
                     Salir <i data-feather="log-out"></i>
                 </a>
