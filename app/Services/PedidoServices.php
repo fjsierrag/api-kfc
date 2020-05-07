@@ -46,12 +46,7 @@ class PedidoServices
         if (!$this->ingresaDetalle()) return false;
         if (!$this->ingresarModificadores()) return false;
         if (!$this->ingresarFormasPago()) return false;
-        /*
-        if(1==$numero){
-            $this->mensajeError="Fallamos a propósito";
-            return false;
-        }
-        */
+
         if (!$this->ingresarPedidoSistema()) return false;
 
         //Cierro la conexion a la BDD
@@ -80,7 +75,7 @@ class PedidoServices
         $cabecera = $this->cabecera();
 
         $idRestauranteDomicilioENV=\Config::get('app.idbasedomicilio');
-        //(int)env("ID_BASE_DOMICILIO");
+
         if($idRestauranteDomicilioENV>0) $idRestaurante=$idRestauranteDomicilioENV;
         else $idRestaurante = $cabecera->codRestaurante;
 

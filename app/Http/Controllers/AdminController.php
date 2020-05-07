@@ -7,10 +7,13 @@ use App\Models\Admin\FailedJob;
 use App\Models\Azure\RestauranteDomicilio;
 use App\Util\DBHelpers;
 use App\Util\Ping;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Queue\Queue;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class AdminController extends Controller
@@ -224,11 +227,14 @@ class AdminController extends Controller
         $jobId=$request->get("idJobFallido");
         $job = FailedJob::findOrFail($jobId);
         $jobData=json_decode($job->payload);
+
         $jobObject=unserialize($jobData->data->command);
+      //  dd($jobObject);
         $resultadoEjecucion="ok";
-        $mensaje="";
+        $mensaje="Ejecutado Correctamente";
         try{
-            $jobObject::dispatchNow($job);
+            $jobObject::dispatchNow($jobObject->uidPedido);
+            $job->delete();
         }catch(\Exception $ex) {
             $resultadoEjecucion="error";
             $mensaje = $ex->getMessage();
@@ -237,6 +243,38 @@ class AdminController extends Controller
         $respuesta=[
             "estado"=>$resultadoEjecucion,
             "mensaje"=>$mensaje,
+        ];
+        return $respuesta;
+    }
+
+    public function jsonJob(Request $request)
+    {
+        $estado="ok";
+        $mensaje="";
+        $jobId=$request->get("idJobFallido");
+        $job = FailedJob::findOrFail($jobId);
+        $fechaFallo=Carbon::createFromFormat("Y-m-d H:i:s",$job->failed_at);
+        $nombreCarpeta=$fechaFallo->format("Y-m-d");
+
+        $jobData = json_decode($job->payload);
+        $jobObject = unserialize($jobData->data->command);
+        $idPedido = $jobObject->uidPedido;
+        $nombreArchivo = $idPedido . ".json";
+
+        $url = join(DIRECTORY_SEPARATOR, ["Pedidos", $nombreCarpeta, $nombreArchivo]);
+
+        try {
+            $contenido = Storage::get($url);
+        } catch (\Exception $ex) {
+            $estado = "error";
+            $mensaje = "No se pudo recuperar el contenido del pedido";
+            $contenido = $ex->getMessage();
+        }
+
+        $respuesta=[
+            "estado"=>$estado,
+            "mensaje"=>$mensaje,
+            "contenido"=>$contenido
         ];
         return $respuesta;
     }

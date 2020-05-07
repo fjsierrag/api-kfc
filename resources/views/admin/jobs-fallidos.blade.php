@@ -16,6 +16,7 @@
             @foreach ($jobs as $registro)
                 <tr class="fila"
                     data-id-job="{{$registro["failed_job_id"]}}"
+                    data-tipo="{{$registro["tipo_job"]}}"
                     data-excepcion="{{$registro["excepcion"]}}"
                 >
                     <td>{{$registro["tipo_job"]}}</td>
@@ -23,7 +24,7 @@
 
                     <td>{{$registro["fecha_fallo"]}}</td>
                     <td>
-                        <button class="btn btn-sm btn-info bt-editar" data-toggle="modal" data-target="#modal-editar">
+                        <button class="btn btn-sm btn-info bt-modificar">
                             Modificar
                         </button>
                         <button class="btn btn-sm btn-dark bt-excepcion">
@@ -42,14 +43,14 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Editar datos conexión</h5>
+                    <h5 class="modal-title">Modificar petición de pedido</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
                 <div class="modal-body">
                     <div class="container">
-                            Solo es un contenedor
+                           <div id="contenedor-ace" style="height:350px"></div>
                     </div>
                 </div><!-- /.container -->
                 <div class="modal-footer">
@@ -62,14 +63,38 @@
     </div>
 @endsection
 @section("js")
+    <script src="{{asset("js/plugins/ace-editor/ace.js")}}"></script>
     <script>
+        var aceEditor = ace.edit("contenedor-ace", {
+            mode: "ace/mode/json"
+        });
+        var $tablaConexiones=$("#tb-conexiones");
         $modalEditar = $('#modal-editar');
         $btnGuardarConexion = $("#btn-guardar-conexion");
-
-        $modalEditar.on("show.bs.modal", function (event) {
-            var button = $(event.relatedTarget);
-            var dataJob = buscarDataJob(button);
-
+        $tablaConexiones.on("click", "button.bt-modificar", function () {
+            var $this = $(this);
+            var dataJob = buscarDataJob($this);
+            var idJobFallido=dataJob.idJob;
+            if("App\\Jobs\\Domicilio\\InsertarPedido"==dataJob.tipo){
+                var peticionBuscarJSON = $.ajax({
+                    url: "{{ route("admin.json-job") }}",
+                    type: "GET",
+                    data: {idJobFallido:idJobFallido},
+                    success: function (response) {
+                        var estado=response.estado;
+                        if("error"===estado) {
+                            alertify.alert(response.mensaje);
+                            return false;
+                        }
+                        aceEditor.setValue(response.contenido);
+                        $("#modal-editar").modal("show");
+                    },
+                    error: function(error){}
+                });
+            }
+            else{
+                alertify.alert("No editable");
+            }
         });
 
         $modalEditar.on("hide.bs.modal", limpiarModalConexion);
@@ -78,6 +103,7 @@
             var $this = $(this);
             var dataJob = buscarDataJob($this);
             var idJobFallido=dataJob.idJob;
+
             var alerta=alertify.alert("Información","Enviando...")
                 .set({
                     closable: false,
@@ -86,6 +112,7 @@
                         this.setContent("Enviando...");
                     }
                 });
+
             var peticionAjax = $.ajax({
                 url: "{{ route("admin.reintentar-job") }}",
                 type: "GET",
@@ -97,6 +124,7 @@
                     alerta.set({
                         title:tituloModal
                     }).setContent(response.mensaje);
+                    if("ok" === estado) location.reload();
                 },
                 error: function(error){}
             });
@@ -116,7 +144,7 @@
         });
 
         function limpiarModalConexion() {
-            alertify.alert("TODO: Implementar");
+            aceEditor.session.setValue("");
         }
 
         function buscarDataJob($target) {

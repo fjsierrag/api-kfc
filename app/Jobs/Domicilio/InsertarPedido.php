@@ -23,8 +23,8 @@ class InsertarPedido implements ShouldQueue
     private $sqlHelpers;
     private $mensajeError = "Error no determinado";
     private $conexionBDD = null;
-
-    public $retryAfter = 30;
+    public $pedidoServices;
+    public $retryAfter = 20;
     public $tries = 3;
 
     /**
@@ -47,21 +47,24 @@ class InsertarPedido implements ShouldQueue
     {
 
         $jsonPedido = Redis::get($this->uidPedido);
-        if(empty($jsonPedido)) throw new PedidoNoInsertado("No se encontró el JSON del pedido en REDIS");
+
+        if(empty($jsonPedido)) {
+            throw new PedidoNoInsertado("No se encontró el JSON del pedido en REDIS");
+        }
         $objPedido = json_decode($jsonPedido);
 
-        $pedidoServices = new PedidoServices($objPedido);
+        $this->pedidoServices = new PedidoServices($objPedido);
 
         if($this->attempts()>1){
-            $pedidoServices->limpiarPedidoFallido();
+              $this->pedidoServices->limpiarPedidoFallido();
         }
 
-        //$resultadoInsercion = $pedidoServices->guardarPedido($this->attempts());
-        $resultadoInsercion = $pedidoServices->guardarPedido();
+        $resultadoInsercion = $this->pedidoServices->guardarPedido();
 
         if(!$resultadoInsercion) {
-            throw new PedidoNoInsertado($pedidoServices->mensajeError);
+            throw new PedidoNoInsertado($this->pedidoServices->mensajeError);
         }
+
         //Eliminar registro procesado
         Redis::del($this->uidPedido);
     }
@@ -69,7 +72,16 @@ class InsertarPedido implements ShouldQueue
     public function failed(\Exception $exception)
     {
         //INSERTE AQUI CODIGO DE NOTIFICACION DE ERRORES HEAVY
+        $jsonPedido = Redis::get($this->uidPedido);
 
+        if(empty($jsonPedido)) {
+            Log::info("Error en Failed: No se encontró el json del pedido en REDIS");
+            return false;
+        }
+        $objPedido = json_decode($jsonPedido);
+
+        $pedidoServices = new PedidoServices($objPedido);
+        $pedidoServices->limpiarPedidoFallido();
         // Send user notification of failure, etc...
     }
 }
